@@ -3,7 +3,7 @@
 ########################################
 
 # Display more messages while executing Kubernetes deployment
-bashDebug: false
+bashDebug: true
 
 # Docker images to use by the Signing Service Helm chart
 signerImage:
@@ -16,6 +16,10 @@ dockerImageCli:
   tag: 1.5.9-zulu-openjdk8u382
   pullPolicy: Always
 
+signerCustomImage:
+  repository: "cenm-signer-custome-image"
+  tag: "1.5.9"
+  pullPolicy: Always
 # Volume size for the etc/ directory
 volumeSizeSignerEtc: 1Mi
 
@@ -30,7 +34,7 @@ signerJar:
   # The directory where the Signing Service configuration is stored
   configPath: etc
   # Which config file to use
-  configFile: signer.conf
+  configFile: signer-aws.conf
 
 # Required parameter
 acceptLicense:
@@ -72,6 +76,12 @@ pki:
     networkmap:
       subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
 
+pkiAWS:
+  credentialsAmazon:
+    partition: ""
+    userName: ""
+    password: ""
+    eniIPAddress: ""
 # Sleep time (in seconds) after an error occured
 sleepTimeAfterError: 120
 
@@ -99,18 +109,18 @@ serviceAccount:
   name:
 
 podSecurityContext:
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
 
 securityContext:
   # capabilities:
   #   drop:
   #   - ALL
   # readOnlyRootFilesystem: true
-  runAsUser: 1000
-  runAsGroup: 1000
-  runAsNonRoot: true
+  runAsUser: 0
+  runAsGroup: 0
+  # runAsNonRoot: true
   allowPrivilegeEscalation: false
 
 resources:

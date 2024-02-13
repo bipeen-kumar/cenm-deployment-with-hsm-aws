@@ -22,6 +22,29 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       initContainers:
+        - name: init-waitforpki
+          env:
+            - name: ACCEPT_LICENSE
+              value: "{{required "You must accept the license agreement to use this software." .Values.acceptLicense }}"
+          securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.signerImage.repository }}:{{ .Values.signerImage.tag }}"
+          imagePullPolicy: {{ .Values.signerImage.pullPolicy }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |-
+              echo "Waiting for ./DATA/PKITOOL-DONE ..."
+              until [ -f ./DATA/PKITOOL-DONE ]
+              do
+                sleep 5
+              done
+              ls -al ./DATA/PKITOOL-DONE
+              echo "Waiting for ./DATA/PKITOOL-DONE ... done."
+          resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: pki-certs-keys
+              mountPath: /opt/cenm/DATA
         - name: init-token
           env:
             - name: ACCEPT_LICENSE
@@ -33,8 +56,7 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            [ ! -f etc/signer.conf ]       && cp CM/signer.conf       etc/
-            [ ! -f etc/signer-azure.conf ] && cp CM/signer-azure.conf etc/
+            [ ! -f etc/signer-aws.conf ]       && cp CM/signer-aws.conf       etc/
             cp CM/*.sh bin/
             chmod +x bin/*
             bin/getZoneToken.sh
@@ -47,22 +69,36 @@ spec:
               mountPath: /opt/cenm/CM/getZoneToken.sh
               subPath: getZoneToken.sh
             - name: signer-conf
-              mountPath: /opt/cenm/CM/signer.conf
-              subPath: signer.conf
-            - name: signer-conf
-              mountPath: /opt/cenm/CM/signer-azure.conf
-              subPath: signer-azure.conf
+              mountPath: /opt/cenm/CM/signer-aws.conf
+              subPath: signer-aws.conf
       containers:
         - name: main
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.signerImage.repository }}:{{ .Values.signerImage.tag }}"
-          imagePullPolicy: {{ .Values.signerImage.pullPolicy }}
+          image: "{{ .Values.signerCustomImage.repository }}:{{ .Values.signerCustomImage.tag }}"
+          imagePullPolicy: {{ .Values.signerCustomImage.pullPolicy }}
           command: ["/bin/bash", "-c"]
           args:
           - |-
+            set -x
+            wget --tries=5 https://s3.amazonaws.com/cloudhsmv2-software/CloudHsmClient/EL7/cloudhsm-client-latest.el7.x86_64.rpm
+            yum install ./cloudhsm-client-latest.el7.x86_64.rpm -y
+
+            wget --tries=5 https://s3.amazonaws.com/cloudhsmv2-software/CloudHsmClient/EL7/cloudhsm-client-jce-latest.el7.x86_64.rpm
+            yum install ./cloudhsm-client-jce-latest.el7.x86_64.rpm -y
+
+            cd /opt/cenm
+            mkdir bin
             cp -p CM/*.sh bin/
-            chmod +x bin/*
+            cp CM-FILES/customerCA.crt /opt/cloudhsm/etc/customerCA.crt
+            cp /opt/cenm/CM/signer-aws.conf etc/signer-aws.conf
+            cp ../../signer-tool-jars/* bin/
+
+            /opt/cloudhsm/bin/configure -a "{{ .Values.pkiAWS.credentialsAmazon.eniIPAddress}}"
+            /opt/cloudhsm/bin/cloudhsm_client /opt/cloudhsm/etc/cloudhsm_client.cfg >output.log 2>&1 &
+            jobs
+
+            chmod +x bin/run.sh
             bin/run.sh
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
@@ -99,11 +135,11 @@ spec:
             mountPath: /opt/cenm/CM/run.sh
             subPath: run.sh
           - name: signer-conf
-            mountPath: /opt/cenm/CM/signer.conf
-            subPath: signer.conf
+            mountPath: /opt/cenm/CM/signer-aws.conf
+            subPath: signer-aws.conf
           - name: signer-conf
-            mountPath: /opt/cenm/CM/signer-azure.conf
-            subPath: signer-azure.conf
+            mountPath: /opt/cenm/CM-FILES/customerCA.crt
+            subPath: customerCA.crt
           {{- if .Values.logsContainersEnabled }}
         - name: logs-signer
           securityContext:

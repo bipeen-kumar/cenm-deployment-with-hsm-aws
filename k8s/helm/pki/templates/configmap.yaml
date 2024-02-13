@@ -10,8 +10,8 @@ data:
   run.sh: |+
     {{ tpl (.Files.Get "files/run.sh") . | nindent 4 }}
 
-  pki.conf: |+
-    {{ tpl (.Files.Get "files/pki.conf") . | nindent 4 }}
+  pki-aws.conf: |+
+    {{ tpl (.Files.Get "files/pki-aws.conf") . | nindent 4 }}
 
-  pki-azure.conf: |+
-    {{ tpl (.Files.Get "files/pki-azure.conf") . | nindent 4 }}
+  customerCA.crt: |+
+    {{ tpl (.Files.Get "files/customerCA.crt") . | nindent 4 }}

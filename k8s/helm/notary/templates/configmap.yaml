@@ -6,14 +6,11 @@ metadata:
   labels:
     {{ include "notary.labels" . | nindent 4 }}
 data:
-  run.sh: |+
-    {{ tpl (.Files.Get "files/run.sh") . | nindent 4 }}
-
   notary-initial-registration.sh: |+
     {{ tpl (.Files.Get "files/notary-initial-registration.sh") . | nindent 4 }}
 
   create-network-parameters-file.sh: |+
     {{ tpl (.Files.Get "files/create-network-parameters-file.sh") . | nindent 4 }}
 
-  notary.conf: |+
-    {{ tpl (.Files.Get "files/notary.conf") . | nindent 4 }}
+  node.conf: |+
+    {{ tpl (.Files.Get "files/node.conf") . | nindent 4 }}

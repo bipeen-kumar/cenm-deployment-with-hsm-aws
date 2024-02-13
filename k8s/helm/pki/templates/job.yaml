@@ -21,11 +21,27 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            cp CM-FILES/pki.conf etc/pki.conf
-            cp CM-FILES/pki-azure.conf etc/pki-azure.conf
+            set -x
+            apt-get -qq -y update
+            wget --tries=5 https://s3.amazonaws.com/cloudhsmv2-software/CloudHsmClient/EL7/cloudhsm-client-latest.el7.x86_64.rpm
+            yum install ./cloudhsm-client-latest.el7.x86_64.rpm -y
+
+            wget --tries=5 https://s3.amazonaws.com/cloudhsmv2-software/CloudHsmClient/EL7/cloudhsm-client-jce-latest.el7.x86_64.rpm
+            yum install ./cloudhsm-client-jce-latest.el7.x86_64.rpm -y
+
+            cd /opt/cenm
+            mkdir bin
+            cp CM-FILES/pki-aws.conf etc/pki-aws.conf
+            cp CM-FILES/customerCA.crt /opt/cloudhsm/etc/customerCA.crt
             cp CM-FILES/run.sh bin/run.sh
+            cp ../../pki-tool-jar/* bin/
             chmod +x bin/run.sh
             mkdir DATA/key-stores DATA/trust-stores DATA/crl-files
+
+            /opt/cloudhsm/bin/configure -a "{{ .Values.pkiAWS.credentialsAmazon.eniIPAddress}}"
+            /opt/cloudhsm/bin/cloudhsm_client /opt/cloudhsm/etc/cloudhsm_client.cfg >output.log 2>&1 &
+            jobs
+
             bin/run.sh
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
@@ -37,11 +53,11 @@ spec:
           - name: hsm-libs
             mountPath: /opt/cenm/HSM
           - name: pki-conf
-            mountPath: /opt/cenm/CM-FILES/pki.conf
-            subPath: pki.conf
+            mountPath: /opt/cenm/CM-FILES/pki-aws.conf
+            subPath: pki-aws.conf
           - name: pki-conf
-            mountPath: /opt/cenm/CM-FILES/pki-azure.conf
-            subPath: pki-azure.conf
+            mountPath: /opt/cenm/CM-FILES/customerCA.crt
+            subPath: customerCA.crt
           - name: pki-conf
             mountPath: /opt/cenm/CM-FILES/run.sh
             subPath: run.sh

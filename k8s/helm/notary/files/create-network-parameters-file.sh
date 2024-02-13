@@ -2,9 +2,9 @@
 {{ if eq .Values.bashDebug true }}
 set -x
 pwd
-cat -n etc/notary.conf
+cat -n workspace/node.conf
 {{ end }}
-
+cd workspace
 # we need just the filename without full path as this is going to be mounted under different directory in NM
 nodeInfoFile=$(basename $(ls additional-node-infos/nodeInfo*))
 export nodeInfoFile
@@ -27,3 +27,4 @@ EOF
 mv additional-node-infos/network-parameters-initial.conf.tmp additional-node-infos/network-parameters-initial.conf
 cat additional-node-infos/network-parameters-initial.conf
 echo
+cd ..

@@ -2,10 +2,10 @@
 {{ if eq .Values.bashDebug true }}
 set -x
 pwd
-cat -n etc/notary.conf
+cat -n workspace/node.conf
 {{ end }}
 
-NETWORK_ROOT_TRUSTSTORE=DATA/trust-stores/network-root-truststore.jks
+NETWORK_ROOT_TRUSTSTORE=workspace/DATA/trust-stores/network-root-truststore.jks
 
 #
 # either download network-root-truststore.jks from specified URL ...
@@ -47,15 +47,15 @@ timeout 10m bash -c 'until printf "" 2>>/dev/null >>/dev/tcp/$0/$1; do echo "Wai
 #   - kubernetes monitoring: pod stuck in initContainer stage - helps with monitoring
 while true
 do
-    if [ ! -f certificates/nodekeystore.jks ] || [ ! -f certificates/sslkeystore.jks ] || [ ! -f certificates/truststore.jks ]
+    if [ ! -f workspace/certificates/nodekeystore.jks ] || [ ! -f workspace/certificates/sslkeystore.jks ] || [ ! -f workspace/certificates/truststore.jks ]
     then
         sleep 30 # guards against "Failed to find the request with id: ... in approved or done requests. This might happen when the Identity Manager was restarted during the approval process."
         echo
         echo "Notary: running initial registration ..."
         echo
-        java -Dcapsule.jvm.args='-Xmx{{ .Values.cordaJarMx }}G' -jar {{ .Values.jarPath }}/corda.jar \
+        java -Dcapsule.jvm.args='-Xmx{{ .Values.cordaJarMx }}G' -jar corda.jar \
           initial-registration \
-        --config-file={{ .Values.configPath }}/notary.conf \
+        --base-directory ./workspace \
         --log-to-console \
         --network-root-truststore ${NETWORK_ROOT_TRUSTSTORE}  \
         --network-root-truststore-password trust-store-password

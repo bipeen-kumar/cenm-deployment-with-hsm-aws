@@ -2,8 +2,8 @@
 ###    CENM configuration options    ###
 ########################################
 
-# Display more messages while executing Kubernetes deployment 
-bashDebug: false
+# Display more messages while executing Kubernetes deployment
+bashDebug: true
 
 # Volume size for Certificates and Keys
 volumeSizePkiCertsKeys: 1Gi
@@ -13,8 +13,8 @@ volumeSizePkiEtc: 1Gi
 
 # Docker images to use by the PKI Helm chart
 pkiImage:
-  repository: corda/enterprise-pkitool
-  tag: 1.5.9-zulu-openjdk8u382
+  repository: "cenm-pki-cusome-image"
+  tag: "1.5.9"
   pullPolicy: Always
 
 pkiJar:
@@ -25,7 +25,7 @@ pkiJar:
   # The directory where the Signing Service configuration is stored
   configPath: etc
   # which config file to use
-  configFile: pki.conf
+  configFile: pki-aws.conf
 
 
 # Parameters related to the PKI Tool configuration file
@@ -50,6 +50,12 @@ pki:
     networkmap:
       subject: "CN=Test Network Map Service Certificate, OU=HQ, O=HoldCo LLC, L=New York, C=US"
 
+pkiAWS:
+  credentialsAmazon:
+    partition: ""
+    userName: ""
+    password: ""
+    eniIPAddress: ""
 
 # Sleep time (in seconds) after an error occured
 sleepTimeAfterError: 300
@@ -79,9 +85,9 @@ serviceAccount:
   name:
 
 podSecurityContext:
-  runAsUser: 1000
-  runAsGroup: 1000
-  fsGroup: 1000
+  runAsUser: 0
+  runAsGroup: 0
+  fsGroup: 0
 
 securityContext: {}
   # capabilities:

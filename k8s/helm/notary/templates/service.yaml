@@ -10,11 +10,11 @@ spec:
   healthCheckNodePort: {{ .Values.healthCheckNodePort }}
 {{- end }}
   ports:
-    - port: {{ .Values.p2pPort }}
-      targetPort: {{ .Values.p2pPort }}
+    - port: {{ .Values.rpcSettingsAddressPort }}
+      targetPort: {{ .Values.rpcSettingsAddressPort }}
       protocol: TCP
-      name: http
-    - port: {{ .Values.sshdPort }} 
+      name: rpc
+    - port: {{ .Values.sshdPort }}
       targetPort: {{ .Values.sshdPort }}
       protocol: TCP
       name: ssh

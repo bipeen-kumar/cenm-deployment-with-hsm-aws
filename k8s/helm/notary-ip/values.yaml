@@ -7,7 +7,7 @@ fullnameOverride: ""
 
 service:
   type: LoadBalancer
-  p2pPort: 10002
-  sshdPort: 2222
+  p2pPort: 40000
+  sshdPort: 2223
 
 healthCheckNodePort: 0

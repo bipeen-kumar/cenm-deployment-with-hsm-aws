@@ -2,6 +2,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ include "idman-ip.fullname" . }}
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
   labels:
 {{ include "idman-ip.labels" . | indent 4 }}
 {{ include "cenm.labels" . | indent 4 }}

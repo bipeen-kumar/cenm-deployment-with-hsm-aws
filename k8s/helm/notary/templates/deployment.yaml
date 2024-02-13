@@ -34,36 +34,32 @@ spec:
           args:
           - |-
             ls -alr
-            cp CM-FILES/notary.conf etc/
-            cp CM-FILES/*.sh bin/
-            chmod +x bin/*
-            bin/notary-initial-registration.sh
-            bin/create-network-parameters-file.sh
+            wget --tries=5 https://truststore.pki.rds.amazonaws.com/ap-southeast-1/ap-southeast-1-bundle.pem
+            apk add openssl
+            openssl x509 -outform der -in ap-southeast-1-bundle.pem -out ap-southeast-1-bundle.der
+            mv ap-southeast-1-bundle.pem ap-southeast-1-bundle.der /opt/corda/workspace/certificates/
+            cp notary-initial-registration.sh create-network-parameters-file.sh workspace/
+            chmod +x workspace/*.sh
+            workspace/notary-initial-registration.sh
+            workspace/create-network-parameters-file.sh
           volumeMounts:
           - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/notary.conf
-            subPath: notary.conf
+            mountPath: /opt/corda/workspace/node.conf
+            subPath: node.conf
           - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/notary-initial-registration.sh
+            mountPath: /opt/corda/notary-initial-registration.sh
             subPath: notary-initial-registration.sh
           - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/create-network-parameters-file.sh
+            mountPath: /opt/corda/create-network-parameters-file.sh
             subPath: create-network-parameters-file.sh
-          - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/run.sh
-            subPath: run.sh
-          - name: notary-etc
-            mountPath: /opt/cenm/etc
           - name: notary-certificates
-            mountPath: /opt/cenm/certificates
+            mountPath: /opt/corda/workspace/certificates
           - name: notary-nodeinfo
-            mountPath: /opt/cenm/additional-node-infos
+            mountPath: /opt/corda/workspace/additional-node-infos
           - name: notary-logs
-            mountPath: /opt/cenm/logs
-          - name: notary-h2
-            mountPath: /opt/cenm/h2
+            mountPath: /opt/corda/workspace/logs
           - name: pki-certs-keys
-            mountPath: /opt/cenm/DATA
+            mountPath: /opt/corda/workspace/DATA
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       containers:
@@ -75,29 +71,43 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            cp CM-FILES/*.sh bin/
-            chmod +x bin/*
-            bin/run.sh
+            wget --tries=5 https://truststore.pki.rds.amazonaws.com/ap-southeast-1/ap-southeast-1-bundle.pem
+            mv ap-southeast-1-bundle.pem /opt/corda/workspace/certificates/
+            ls -l /opt/corda/workspace/additional-node-infos
+            ./startCorda.sh
+
+            status=$?
+            if [ "${status}" -ne "0" ]
+            then
+              echo "Node failed - exit code: ${status} (error)"
+              echo
+              echo "Going to sleep for requested 180 seconds to let you login and investigate."
+              sleep 180
+            fi
           volumeMounts:
           - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/notary.conf
-            subPath: notary.conf
+            mountPath: /opt/corda/workspace/node.conf
+            subPath: node.conf
           - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/notary-initial-registration.sh
+            mountPath: /opt/corda/workspace/notary-initial-registration.sh
             subPath: notary-initial-registration.sh
-          - name: notary-conf
-            mountPath: /opt/cenm/CM-FILES/run.sh
-            subPath: run.sh
-          - name: notary-etc
-            mountPath: /opt/cenm/etc
           - name: notary-certificates
-            mountPath: /opt/cenm/certificates
+            mountPath: /opt/corda/workspace/certificates
+          - name: notary-cordapps
+            mountPath: /opt/corda/workspace/cordapps
+          - name: notary-nodeinfo
+            mountPath: /opt/corda/workspace/additional-node-infos
           - name: notary-logs
-            mountPath: /opt/cenm/logs
-          - name: notary-h2
-            mountPath: /opt/cenm/h2
+            mountPath: /opt/corda/workspace/logs
           - name: pki-certs-keys
-            mountPath: /opt/cenm/DATA
+            mountPath: /opt/corda/workspace/DATA
+          env:
+          - name: IDENTITY_MANAGER_ADDRESS
+            value: "http://cenm-idman-ip.cenm:10000"
+          - name: NETMAP_ADDRESS
+            value: "http://cenm-nmap.cenm:10000"
+          - name: TRUSTSTORE_PASSWORD
+            value: "trust-store-password"
           {{- if .Values.livenessProbe.enabled }}
           livenessProbe:
             tcpSocket:
@@ -127,33 +137,30 @@ spec:
           command: ["/bin/bash", "-c"]
           args:
           - |-
-            cd /opt/cenm/
+            cd /opt/corda/workspace/
             while true; do tail -f logs/*.log 2>/dev/null; sleep 5; done
             # in case sth went wrong just wait indefinitely ...
             tail -f /dev/null
           volumeMounts:
           - name: notary-logs
-            mountPath: /opt/cenm/logs
+            mountPath: /opt/corda/workspace/logs
         {{- end  }}
       volumes:
       - name: notary-conf
         configMap:
           name: {{ .Values.prefix }}-notary-conf
-      - name: notary-etc
-        persistentVolumeClaim:
-          claimName: {{ .Values.prefix }}-notary-etc
       - name: notary-certificates
         persistentVolumeClaim:
           claimName: {{ .Values.prefix }}-notary-certificates
+      - name: notary-cordapps
+        persistentVolumeClaim:
+          claimName: {{ .Values.prefix }}-notary-cordapps
       - name: notary-logs
         persistentVolumeClaim:
           claimName: {{ .Values.prefix }}-notary-logs
       - name: notary-nodeinfo
         persistentVolumeClaim:
           claimName: {{ .Values.prefix }}-notary-nodeinfo
-      - name: notary-h2
-        persistentVolumeClaim:
-          claimName: {{ .Values.prefix }}-notary-h2
       - name: pki-certs-keys
         persistentVolumeClaim:
           claimName: {{ .Values.prefix }}-pki-certs-keys
