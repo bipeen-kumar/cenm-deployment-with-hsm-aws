@@ -63,10 +63,10 @@ mpv: 3
 # Database configuration
 dataSourceProperties:
   dataSource:
-    password: "cordanotaryadminuser"
+    password: ""
     #TODO: automate to fetch the hostname
-    url: "jdbc:postgresql://csn-001-sit-pgrds-db-notary.cqq688dt2c1i.ap-southeast-1.rds.amazonaws.com:5432/postgres"
-    user: "cordanotaryadminpass"
+    url: ""
+    user: ""
     sslRootCert: "/opt/corda/workspace/certificates/ap-southeast-1-bundle.der"
   dataSourceClassName: "org.postgresql.ds.PGSimpleDataSource"
 
